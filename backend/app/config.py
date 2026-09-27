@@ -83,10 +83,25 @@ class Settings(BaseSettings):
     @field_validator("database_url", mode="before")
     @classmethod
     def _blank_database_url(cls, value: object) -> object:
-        """An empty DATABASE_URL in .env means "use the local SQLite default"."""
+        """Normalize the connection URL.
+
+        * An empty value means "use the local SQLite default".
+        * Hosts such as Render, Neon, Supabase and Railway hand out
+          ``postgresql://`` URLs, whose SQLAlchemy default driver is psycopg2.
+          psycopg2 is not a dependency of this project, so a URL is rewritten to
+          the psycopg3 driver that *is* installed. Without this, pasting a
+          provider URL verbatim fails with
+          ``ModuleNotFoundError: No module named 'psycopg2'``.
+        """
         if value is None or (isinstance(value, str) and not value.strip()):
             return f"sqlite:///{(DATA_DIR / 'socialscope.db').as_posix()}"
-        return value
+
+        url = str(value).strip()
+        if url.startswith("postgres://"):
+            url = "postgresql://" + url[len("postgres://") :]
+        if url.startswith("postgresql://") and "+" not in url.split("://", 1)[0]:
+            url = "postgresql+psycopg://" + url[len("postgresql://") :]
+        return url
 
     @property
     def cors_origin_list(self) -> list[str]:

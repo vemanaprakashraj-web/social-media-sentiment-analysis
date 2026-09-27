@@ -11,6 +11,37 @@ import pytest
 
 # ------------------------------------------------------------------ system
 
+def test_database_url_is_normalized() -> None:
+    """Provider URLs must not need manual driver editing.
+
+    Render, Neon, Supabase and Railway all hand out ``postgresql://`` URLs,
+    whose SQLAlchemy default driver is psycopg2 — not a dependency here. An
+    un-normalised URL fails at import time, which took the whole service down.
+    """
+    from app.config import Settings
+
+    base = {"DATABASE_URL": "postgresql://user:pass@host:5432/db"}
+    assert Settings(**base).database_url == "postgresql+psycopg://user:pass@host:5432/db"
+    # The legacy alias must be upgraded too.
+    assert (
+        Settings(DATABASE_URL="postgres://user:pass@host:5432/db").database_url
+        == "postgresql+psycopg://user:pass@host:5432/db"
+    )
+    # An explicit driver is respected, not overwritten.
+    assert (
+        Settings(DATABASE_URL="postgresql+psycopg2://user:pass@host:5432/db").database_url
+        == "postgresql+psycopg2://user:pass@host:5432/db"
+    )
+    # SQLite is untouched.
+    assert Settings(DATABASE_URL="sqlite:///./x.db").database_url == "sqlite:///./x.db"
+
+
+def test_blank_database_url_falls_back_to_sqlite() -> None:
+    from app.config import Settings
+
+    assert Settings(DATABASE_URL="").database_url.startswith("sqlite:///")
+
+
 def test_health_reports_configuration_without_secrets(client) -> None:
     response = client.get("/api/health")
     assert response.status_code == 200
