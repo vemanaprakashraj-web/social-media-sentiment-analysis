@@ -1,0 +1,11 @@
+# PostgreSQL driver for SocialScope AI.
+#
+# The runtime does not need this to use SQLite. Install it only when pointing
+# the app at PostgreSQL:
+#
+#   pip install -r requirements-postgres.txt
+#   DATABASE_URL=postgresql+psycopg://user:password@host:5432/dbname
+#
+# The binary wheel avoids needing libpq or a compiler on the host.
+
+psycopg[binary]>=3.2,<4.0

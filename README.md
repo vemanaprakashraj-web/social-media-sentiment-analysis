@@ -281,10 +281,14 @@ Add `--profile postgres` to include the optional PostgreSQL service.
 
 ```powershell
 cd backend
-pip install "psycopg[binary]>=3.2"
+pip install -r requirements-postgres.txt
 # then in backend/.env:
 # DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/socialscope
 ```
+
+The driver is a separate requirements file because SQLite needs no extra
+package. The `backend/Dockerfile` installs it automatically, so Docker and
+container hosts work with PostgreSQL without extra steps.
 
 ---
 
