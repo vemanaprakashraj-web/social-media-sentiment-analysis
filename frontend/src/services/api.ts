@@ -10,7 +10,26 @@ import type {
   ProfileStats,
 } from '../types'
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api'
+const CONFIGURED_BASE = import.meta.env.VITE_API_URL as string | undefined
+const BASE = CONFIGURED_BASE || '/api'
+
+/**
+ * A single request-target message, so a connection failure tells the user which
+ * URL was actually attempted instead of guessing at a port.
+ */
+function unreachableMessage(): string {
+  if (!CONFIGURED_BASE) {
+    return (
+      'Cannot reach the SocialScope AI API. No API base URL is configured for this ' +
+      'deployment — set the VITE_API_URL environment variable (for example ' +
+      'https://your-backend.onrender.com/api) and redeploy.'
+    )
+  }
+  return (
+    `Cannot reach the SocialScope AI API at ${CONFIGURED_BASE}. The backend may be ` +
+    'sleeping, still deploying, or rejecting this origin — check CORS_ORIGINS on the backend.'
+  )
+}
 
 /** An error carrying the backend's user-safe message. */
 export class ApiError extends Error {
@@ -35,10 +54,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
     })
   } catch {
-    throw new ApiError(
-      'Cannot reach the SocialScope AI API. Make sure the backend is running on port 8000.',
-      'network_error',
-    )
+    throw new ApiError(unreachableMessage(), 'network_error')
   }
 
   if (!response.ok) {
@@ -154,7 +170,7 @@ export async function downloadExport(
   try {
     response = await fetch(`${BASE}${path}`)
   } catch {
-    throw new ApiError('Cannot reach the export service. Check that the backend is running.', 'network_error')
+    throw new ApiError(unreachableMessage(), 'network_error')
   }
 
   if (!response.ok) {
