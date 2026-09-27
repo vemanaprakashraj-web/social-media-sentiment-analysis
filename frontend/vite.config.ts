@@ -18,6 +18,11 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    // ECharts is ~1.04 MB raw but only ~343 kB gzipped, and it is deliberately
+    // isolated in its own long-lived chunk (see manualChunks below) so it
+    // caches independently of app code. Raising the limit silences a warning
+    // that reflects this intentional trade-off, not a regression.
+    chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
         // ECharts is by far the heaviest dependency; keeping it in its own
